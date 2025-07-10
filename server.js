@@ -50,19 +50,38 @@ class OrderAutomationService {
         return [];
       }
       
-      // Get messages without specific filtering first - let's see what we get
+      // First get the phone numbers for this workspace
+      console.log('Fetching phone numbers...');
+      const phoneResponse = await axios.get('https://api.openphone.com/v1/phone-numbers', {
+        headers: {
+          'Authorization': CONFIG.OPENPHONE_API_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Phone numbers response:', phoneResponse.data);
+      
+      if (!phoneResponse.data.data || phoneResponse.data.data.length === 0) {
+        console.log('No phone numbers found');
+        return [];
+      }
+
+      const phoneNumberId = phoneResponse.data.data[0].id;
+      console.log('Using phone number ID:', phoneNumberId);
+
+      // Now get messages for this phone number
       const response = await axios.get('https://api.openphone.com/v1/messages', {
         headers: {
           'Authorization': CONFIG.OPENPHONE_API_KEY,
           'Content-Type': 'application/json'
         },
         params: {
+          phoneNumberId: phoneNumberId,
           limit: 50
-          // Removing time filters temporarily to get any messages
         }
       });
 
-      console.log(`API Response:`, response.data);
+      console.log(`Messages API Response:`, response.data);
       return response.data.data || [];
     } catch (error) {
       console.error('Error fetching OpenPhone messages:', error.response?.data || error.message);
