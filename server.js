@@ -5,7 +5,6 @@ const express = require('express');
 const cron = require('node-cron');
 const axios = require('axios');
 const { google } = require('googleapis');
-const { WebClient } = require('@slack/web-api');
 
 // Configuration
 const CONFIG = {
@@ -18,7 +17,6 @@ const CONFIG = {
 };
 
 // Initialize clients
-const slackClient = new WebClient(CONFIG.SLACK_TOKEN);
 let lastProcessedTime = new Date();
 
 class OrderAutomationService {
