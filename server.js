@@ -365,7 +365,14 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
-
+app.get('/setup-sheets', async (req, res) => {
+  try {
+    await orderService.setupGoogleSheetHeaders();
+    res.json({ success: true, message: 'Google Sheets setup completed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 app.post('/process-now', async (req, res) => {
   try {
     await orderService.processMessages();
