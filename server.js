@@ -50,18 +50,19 @@ class OrderAutomationService {
         return [];
       }
       
-      // First, let's just get all recent messages without specific filtering
+      // Get messages without specific filtering first - let's see what we get
       const response = await axios.get('https://api.openphone.com/v1/messages', {
         headers: {
           'Authorization': CONFIG.OPENPHONE_API_KEY,
           'Content-Type': 'application/json'
         },
         params: {
-          limit: 50,
-          createdAfter: lastProcessedTime.toISOString()
+          limit: 50
+          // Removing time filters temporarily to get any messages
         }
       });
 
+      console.log(`API Response:`, response.data);
       return response.data.data || [];
     } catch (error) {
       console.error('Error fetching OpenPhone messages:', error.response?.data || error.message);
