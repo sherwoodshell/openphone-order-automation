@@ -50,42 +50,41 @@ class OrderAutomationService {
         return [];
       }
       
-      // First get the phone numbers for this workspace
-      console.log('Fetching phone numbers...');
-      const phoneResponse = await axios.get('https://api.openphone.com/v1/phone-numbers', {
-        headers: {
-          'Authorization': CONFIG.OPENPHONE_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      console.log('Phone numbers response:', phoneResponse.data);
+      console.log('Fetching conversations from OpenPhone...');
       
-      if (!phoneResponse.data.data || phoneResponse.data.data.length === 0) {
-        console.log('No phone numbers found');
-        return [];
-      }
-
-      const phoneNumberId = phoneResponse.data.data[0].id;
-      console.log('Using phone number ID:', phoneNumberId);
-
-      // Now get messages for this phone number with BOTH required parameters
-      const response = await axios.get('https://api.openphone.com/v1/messages', {
+      // Try the conversations endpoint instead - it's simpler
+      const response = await axios.get('https://api.openphone.com/v1/conversations', {
         headers: {
           'Authorization': CONFIG.OPENPHONE_API_KEY,
           'Content-Type': 'application/json'
         },
         params: {
-          phoneNumberId: phoneNumberId,
-          participants: [],
           limit: 50
         }
       });
 
-      console.log(`SUCCESS! Messages API Response:`, response.data);
-      return response.data.data || [];
+      console.log('Conversations response:', response.data);
+      
+      // Extract messages from conversations
+      const messages = [];
+      if (response.data.data) {
+        for (const conversation of response.data.data) {
+          if (conversation.lastMessage) {
+            messages.push({
+              id: conversation.lastMessage.id,
+              body: conversation.lastMessage.body,
+              from: conversation.lastMessage.from,
+              direction: conversation.lastMessage.direction,
+              createdAt: conversation.lastMessage.createdAt
+            });
+          }
+        }
+      }
+      
+      console.log(`Extracted ${messages.length} messages from conversations`);
+      return messages;
     } catch (error) {
-      console.error('Error fetching OpenPhone messages:', error.response?.data || error.message);
+      console.error('Error fetching OpenPhone conversations:', error.response?.data || error.message);
       return [];
     }
   }
