@@ -45,32 +45,47 @@ class OrderAutomationService {
   // Fetch messages from OpenPhone API
   async fetchOpenPhoneMessages() {
     try {
-      console.log('=== STARTING MESSAGE FETCH ===');
-      
       if (!CONFIG.OPENPHONE_API_KEY) {
         console.log('OpenPhone API key not provided');
         return [];
       }
       
-      console.log('API Key present, making request...');
+      // First get the phone numbers for this workspace
+      console.log('Fetching phone numbers...');
+      const phoneResponse = await axios.get('https://api.openphone.com/v1/phone-numbers', {
+        headers: {
+          'Authorization': CONFIG.OPENPHONE_API_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Phone numbers response:', phoneResponse.data);
       
-      // Try the simplest possible request first
+      if (!phoneResponse.data.data || phoneResponse.data.data.length === 0) {
+        console.log('No phone numbers found');
+        return [];
+      }
+
+      const phoneNumberId = phoneResponse.data.data[0].id;
+      console.log('Using phone number ID:', phoneNumberId);
+
+      // Now get messages for this phone number with BOTH required parameters
       const response = await axios.get('https://api.openphone.com/v1/messages', {
         headers: {
           'Authorization': CONFIG.OPENPHONE_API_KEY,
           'Content-Type': 'application/json'
         },
         params: {
-          participants: [] // Empty array to satisfy the requirement
+          phoneNumberId: phoneNumberId,
+          participants: [],
+          limit: 50
         }
       });
 
-      console.log('SUCCESS! Messages received:', response.data);
+      console.log(`SUCCESS! Messages API Response:`, response.data);
       return response.data.data || [];
     } catch (error) {
-      console.log('=== ERROR DETAILS ===');
-      console.error('Full error:', error.response?.data || error.message);
-      console.log('=== END ERROR ===');
+      console.error('Error fetching OpenPhone messages:', error.response?.data || error.message);
       return [];
     }
   }
