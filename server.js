@@ -16,7 +16,6 @@ const CONFIG = {
   TIMEZONE: 'America/New_York'
 };
 
-// Initialize clients
 let lastProcessedTime = new Date();
 
 class OrderAutomationService {
@@ -27,12 +26,17 @@ class OrderAutomationService {
 
   async initializeGoogleSheets() {
     try {
+      if (!CONFIG.GOOGLE_SHEETS_CREDENTIALS) {
+        console.log('Google Sheets credentials not provided');
+        return;
+      }
       const credentials = JSON.parse(CONFIG.GOOGLE_SHEETS_CREDENTIALS);
       const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: ['https://www.googleapis.com/auth/spreadsheets']
       });
       this.sheets = google.sheets({ version: 'v4', auth });
+      console.log('Google Sheets initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Google Sheets:', error);
     }
@@ -41,6 +45,11 @@ class OrderAutomationService {
   // Fetch messages from OpenPhone API
   async fetchOpenPhoneMessages() {
     try {
+      if (!CONFIG.OPENPHONE_API_KEY) {
+        console.log('OpenPhone API key not provided');
+        return [];
+      }
+      
       const response = await axios.get('https://api.openphone.com/v1/messages', {
         headers: {
           'Authorization': `Bearer ${CONFIG.OPENPHONE_API_KEY}`,
@@ -91,6 +100,11 @@ If not an order, respond with: {"isOrder": false}
 `;
 
     try {
+      if (!CONFIG.OPENAI_API_KEY) {
+        console.log('OpenAI API key not provided');
+        return { isOrder: false };
+      }
+
       const response = await axios.post('https://api.openai.com/v1/chat/completions', {
         model: 'gpt-4',
         messages: [
@@ -123,6 +137,11 @@ If not an order, respond with: {"isOrder": false}
   // Log order to Google Sheets
   async logOrderToSheet(orderData, originalMessage) {
     try {
+      if (!this.sheets || !CONFIG.GOOGLE_SHEET_ID) {
+        console.log('Google Sheets not configured');
+        return false;
+      }
+
       const timestamp = new Date().toLocaleString('en-US', { 
         timeZone: CONFIG.TIMEZONE 
       });
@@ -158,9 +177,14 @@ If not an order, respond with: {"isOrder": false}
     }
   }
 
- // Send order notification to Slack via webhook
+  // Send order notification to Slack via webhook
   async sendSlackNotification(orderData, originalMessage) {
     try {
+      if (!CONFIG.SLACK_WEBHOOK_URL) {
+        console.log('Slack webhook URL not provided');
+        return false;
+      }
+
       const urgencyEmoji = {
         'urgent': '🚨',
         'asap': '⚡',
@@ -251,6 +275,7 @@ If not an order, respond with: {"isOrder": false}
       return false;
     }
   }
+
   // Main processing function
   async processMessages() {
     console.log(`Starting message processing at ${new Date().toLocaleString()}`);
@@ -288,7 +313,7 @@ If not an order, respond with: {"isOrder": false}
           if (sheetSuccess && slackSuccess) {
             console.log(`Order processed successfully: ${message.id}`);
           } else {
-            console.error(`Failed to fully process order: ${message.id}`);
+            console.log(`Order processed with some issues: ${message.id}`);
           }
         } else {
           console.log(`No order detected in message ${message.id}`);
@@ -310,6 +335,10 @@ If not an order, respond with: {"isOrder": false}
   // Setup Google Sheets headers (run once)
   async setupGoogleSheetHeaders() {
     try {
+      if (!this.sheets || !CONFIG.GOOGLE_SHEET_ID) {
+        throw new Error('Google Sheets not configured');
+      }
+
       const headers = [
         'Timestamp',
         'Customer Name',
@@ -334,8 +363,10 @@ If not an order, respond with: {"isOrder": false}
       });
 
       console.log('Google Sheets headers setup completed');
+      return true;
     } catch (error) {
       console.error('Error setting up Google Sheets headers:', error);
+      throw error;
     }
   }
 }
@@ -365,18 +396,11 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
 app.get('/setup-sheets', async (req, res) => {
   try {
     await orderService.setupGoogleSheetHeaders();
     res.json({ success: true, message: 'Google Sheets setup completed' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-app.post('/process-now', async (req, res) => {
-  try {
-    await orderService.processMessages();
-    res.json({ success: true, message: 'Processing completed' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -386,6 +410,24 @@ app.post('/setup-sheets', async (req, res) => {
   try {
     await orderService.setupGoogleSheetHeaders();
     res.json({ success: true, message: 'Google Sheets setup completed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/process-now', async (req, res) => {
+  try {
+    await orderService.processMessages();
+    res.json({ success: true, message: 'Processing completed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/process-now', async (req, res) => {
+  try {
+    await orderService.processMessages();
+    res.json({ success: true, message: 'Processing completed' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
