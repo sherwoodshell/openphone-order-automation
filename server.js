@@ -160,7 +160,7 @@ If not an order, respond with: {"isOrder": false}
     }
   }
 
-  // Send order notification to Slack
+ // Send order notification to Slack via webhook
   async sendSlackNotification(orderData, originalMessage) {
     try {
       const urgencyEmoji = {
@@ -170,96 +170,80 @@ If not an order, respond with: {"isOrder": false}
       };
 
       const emoji = urgencyEmoji[orderData.urgency] || '📋';
+      const timestamp = new Date(originalMessage.createdAt).toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE });
       
-      const blocks = [
-        {
-          type: 'header',
-          text: {
-            type: 'plain_text',
-            text: `${emoji} New Order Received`
-          }
-        },
-        {
-          type: 'section',
-          fields: [
-            {
-              type: 'mrkdwn',
-              text: `*Customer:* ${orderData.customerName}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Phone:* ${orderData.customerPhone}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Products:* ${orderData.products.join(', ')}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Quantities:* ${orderData.quantities.join(', ')}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Total:* ${orderData.totalAmount}`
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Urgency:* ${orderData.urgency.toUpperCase()}`
+      const message = {
+        text: `${emoji} *NEW ORDER RECEIVED*`,
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              type: 'plain_text',
+              text: `${emoji} New Order - Sherwood Island Oysters`
             }
-          ]
-        },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*Special Requests:* ${orderData.specialRequests || 'None'}`
-          }
-        },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*Original Message:* "${originalMessage.body}"`
-          }
-        },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: `Received: ${new Date(originalMessage.createdAt).toLocaleString('en-US', { timeZone: CONFIG.TIMEZONE })} | Message ID: ${originalMessage.id}`
-            }
-          ]
-        },
-        {
-          type: 'actions',
-          elements: [
-            {
-              type: 'button',
-              text: {
-                type: 'plain_text',
-                text: 'Confirm Order'
+          },
+          {
+            type: 'section',
+            fields: [
+              {
+                type: 'mrkdwn',
+                text: `*Customer:*\n${orderData.customerName}`
               },
-              style: 'primary',
-              value: `confirm_${originalMessage.id}`
-            },
-            {
-              type: 'button',
-              text: {
-                type: 'plain_text',
-                text: 'Need Clarification'
+              {
+                type: 'mrkdwn',
+                text: `*Phone:*\n${orderData.customerPhone}`
               },
-              style: 'danger',
-              value: `clarify_${originalMessage.id}`
+              {
+                type: 'mrkdwn',
+                text: `*Products:*\n${orderData.products.join(', ')}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Quantities:*\n${orderData.quantities.join(', ')}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Total Amount:*\n${orderData.totalAmount}`
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Urgency:*\n${orderData.urgency.toUpperCase()}`
+              }
+            ]
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*Special Requests:*\n${orderData.specialRequests || 'None'}`
             }
-          ]
-        }
-      ];
+          },
+          {
+            type: 'divider'
+          },
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*Original Message:*\n"${originalMessage.body}"`
+            }
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `📅 Received: ${timestamp} | 🆔 Message ID: ${originalMessage.id}`
+              }
+            ]
+          }
+        ]
+      };
 
-      await slackClient.chat.postMessage({
-        channel: CONFIG.SLACK_CHANNEL,
-        text: `New order from ${orderData.customerName}`,
-        blocks: blocks
+      await axios.post(CONFIG.SLACK_WEBHOOK_URL, message, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       console.log('Order notification sent to Slack successfully');
@@ -269,7 +253,6 @@ If not an order, respond with: {"isOrder": false}
       return false;
     }
   }
-
   // Main processing function
   async processMessages() {
     console.log(`Starting message processing at ${new Date().toLocaleString()}`);
