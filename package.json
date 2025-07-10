@@ -7,11 +7,10 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+     "express": "^4.18.2",
     "node-cron": "^3.0.2",
     "axios": "^1.4.0",
-    "googleapis": "^118.0.0",
-    "@slack/web-api": "^6.8.1"
+    "googleapis": "^118.0.0"
   },
   "engines": {
     "node": "18.x"
