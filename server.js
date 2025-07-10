@@ -52,7 +52,7 @@ class OrderAutomationService {
       
       const response = await axios.get('https://api.openphone.com/v1/messages', {
         headers: {
-          'Authorization': `Bearer ${CONFIG.OPENPHONE_API_KEY}`,
+          'Authorization': CONFIG.OPENPHONE_API_KEY,
           'Content-Type': 'application/json'
         },
         params: {
