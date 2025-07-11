@@ -68,7 +68,12 @@ class OrderAutomationService {
       // Extract messages from conversations
       const messages = [];
       if (response.data.data) {
-        for (const conversation of response.data.data) {
+        console.log(`Processing ${response.data.data.length} conversations...`);
+        
+        for (let i = 0; i < Math.min(3, response.data.data.length); i++) {
+          const conversation = response.data.data[i];
+          console.log(`Conversation ${i}:`, JSON.stringify(conversation, null, 2));
+          
           if (conversation.lastMessage) {
             messages.push({
               id: conversation.lastMessage.id,
