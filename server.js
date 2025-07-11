@@ -74,17 +74,25 @@ class OrderAutomationService {
           const conversation = response.data.data[i];
           console.log(`Conversation ${i}:`, JSON.stringify(conversation, null, 2));
           
-          if (conversation.lastMessage) {
-            messages.push({
-              id: conversation.lastMessage.id,
-              body: conversation.lastMessage.body,
-              from: conversation.lastMessage.from,
-              direction: conversation.lastMessage.direction,
-              createdAt: conversation.lastMessage.createdAt
-            });
+          // Use lastActivityId to get the actual message
+          if (conversation.lastActivityId) {
+            try {
+              console.log(`Fetching message ${conversation.lastActivityId}...`);
+              const messageResponse = await axios.get(`https://api.openphone.com/v1/messages/${conversation.lastActivityId}`, {
+                headers: {
+                  'Authorization': CONFIG.OPENPHONE_API_KEY,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (messageResponse.data.data) {
+                messages.push(messageResponse.data.data);
+                console.log(`Added message: ${messageResponse.data.data.body}`);
+              }
+            } catch (error) {
+              console.log(`Failed to fetch message ${conversation.lastActivityId}:`, error.message);
+            }
           }
-        }
-      }
       
       console.log(`Extracted ${messages.length} messages from conversations`);
       return messages;
