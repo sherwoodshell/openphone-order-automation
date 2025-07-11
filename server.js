@@ -42,7 +42,7 @@ class OrderAutomationService {
     }
   }
 
-  // Fetch messages from OpenPhone API
+    // Fetch messages from OpenPhone API
   async fetchOpenPhoneMessages() {
     try {
       if (!CONFIG.OPENPHONE_API_KEY) {
